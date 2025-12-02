@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Trendscout — Pro MVP</title>
+
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Minimal reset + theme -->
+<style>
+:root{
+  --bg:#0b1220; --panel:#0f172a; --card:#111a2e; --ink:#e6eaf2; --muted:#9fb0c8;
+  --line:#1f2a44; --teal:#00c4b3; --indigo:#5135ff; --ok:#10b981; --warn:#f59e0b; --bad:#ef4444;
+  --radius:14px; --shadow:0 10px 30px #0008;
+}
+:root.light{
+  --bg:#f7f9fc; --panel:#ffffff; --card:#ffffff; --ink:#0b1220; --muted:#5b6b81; --line:#e6ecf4;
+  --shadow:0 6px 18px rgba(10,22,40,.08);
+}
+*{box-sizing:border-box} html,body{margin:0;height:100%;font:14px/1.45 Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:linear-gradient(180deg,var(--bg) 0%, #0e1628 100%)}
+a{color:inherit;text-decoration:none}
+button{font:600 14px Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+small,.hint{color:var(--muted)}
+label{font-weight:600}
+input,select{font:500 14px Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+
+.app{display:grid;grid-template-rows:auto 1fr auto;min-height:100vh}
+
+header{position:sticky;top:0;z-index:10;background:rgba(11,18,32,.65);backdrop-filter:saturate(120%) blur(10px);
+  border-bottom:1px solid var(--line);padding:14px 20px}
+:root.light header{background:rgba(255,255,255,.7)}
+
+.nav{display:flex;gap:16px;align-items:center;max-width:1400px;margin:0 auto}
+.logo{width:40px;height:40px;border-radius:50%;background:
+  radial-gradient(120% 120% at 25% 20%, var(--teal), var(--indigo));
+  box-shadow:0 0 0 2px #0b122055, var(--shadow)}
+h1{margin:0;font-size:18px}
+.nav-spacer{flex:1}
+.btn{border:0;border-radius:12px;padding:9px 12px;cursor:pointer;transition:transform .05s ease}
+.btn:active{transform:translateY(1px)}
+.btn-ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn-primary{background:linear-gradient(90deg,var(--teal),var(--indigo));color:#04101a}
+.btn-danger{background:linear-gradient(90deg,#ff6b6b,#ff9b6b);color:#2a0b0b}
+.switch{display:inline-flex;gap:8px;align-items:center}
+
+main{max-width:1400px;margin:0 auto;padding:20px;display:grid;grid-template-columns:340px 1fr;gap:20px}
+aside{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.section{padding:16px;border-bottom:1px solid var(--line)}
+.section:last-child{border-bottom:0}
+.section h2{margin:0 0 10px 0;font-size:16px}
+.controls{display:grid;gap:12px}
+input[type=file],input[type=text],input[type=number],select{
+  width:100%;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+input[type=range]{width:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--shadow)}
+.kpi h3{margin:0 0 4px 0;font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+.kpi .v{font-size:22px;font-weight:800}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.card-head{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.card-head h3{margin:0;font-size:15px}
+.toolbar{padding:10px 16px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.table-wrap{overflow:auto;max-height:54vh}
+table{border-collapse:separate;border-spacing:0;width:100%}
+th,td{padding:10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{position:sticky;top:0;background:var(--card);font-size:12px;color:var(--muted);z-index:1;cursor:pointer}
+tr:hover td{background:rgba(81,53,255,.06)}
+.badge{display:inline-block;padding:3px 9px;border-radius:999px;font-weight:700;font-size:12px;background:#243145;color:#bfe9ff}
+
+.grid2x{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px}
+
+footer{padding:16px;border-top:1px solid var(--line);text-align:center;color:var(--muted)}
+</style>
+
+<!-- Charts & parsers -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="nav">
+      <div class="logo" aria-hidden="true"></div>
+      <div>
+        <h1>Trendscout — Pro MVP</h1>
+        <small class="hint">Decision-grade opportunity scoring from marketplace + trend signals</small>
+      </div>
+      <div class="nav-spacer"></div>
+      <div class="switch">
+        <small class="hint">Theme</small>
+        <button id="btnTheme" class="btn btn-ghost" title="Toggle Theme">Dark</button>
+      </div>
+      <button id="btnSave" class="btn btn-ghost" title="Save session to this browser">Save</button>
+      <button id="btnLoad" class="btn btn-ghost" title="Load saved session">Load</button>
+      <button id="btnClearAll" class="btn btn-danger" title="Clear all data">Clear</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Sidebar -->
+    <aside>
+      <div class="section">
+        <h2>1) Data Intake</h2>
+        <div class="controls">
+          <div>
+            <label>SellerSprite (.csv / .xlsx)</label>
+            <input id="ssFile" type="file" accept=".csv,.xlsx,.xls">
+          </div>
+          <div>
+            <label>Google Trends CSVs (one per keyword) — optional</label>
+            <input id="gtFiles" type="file" accept=".csv" multiple>
+            <small class="hint">We’ll map series to keywords automatically. If missing, seasonality is neutral.</small>
+          </div>
+          <div class="grid2">
+            <button id="btnSample" class="btn btn-ghost">Load sample data</button>
+            <button id="btnReplace" class="btn btn-ghost" title="Replace current rows with new sample">Replace</button>
+          </div>
+          <small id="ingestNote" class="hint">No data loaded yet.</small>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>2) Scoring Settings</h2>
+        <div class="grid2">
+          <div>
+            <label>Price target ($)</label>
+            <input id="priceTarget" type="range" min="5" max="80" step="1" value="20">
+            <small id="priceTargetVal" class="hint"></small>
+          </div>
+          <div>
+            <label>Price tolerance (±$)</label>
+            <input id="priceWidth" type="range" min="5" max="60" step="1" value="20">
+            <small id="priceWidthVal" class="hint"></small>
+          </div>
+        </div>
+        <div class="grid2">
+          <div>
+            <label>Demand</label>
+            <input id="wDemand" type="range" min="0" max="60" step="1" value="35">
+            <small id="wDemandVal" class="hint"></small>
+          </div>
+          <div>
+            <label>Competition (1−HHI)</label>
+            <input id="wComp" type="range" min="0" max="60" step="1" value="20">
+            <small id="wCompVal" class="hint"></small>
+          </div>
+          <div>
+            <label>Click Conv</label>
+            <input id="wCC" type="range" min="0" max="60" step="1" value="15">
+            <small id="wCCVal" class="hint"></small>
+          </div>
+          <div>
+            <label>Price Posture</label>
+            <input id="wPrice" type="range" min="0" max="60" step="1" value="15">
+            <small id="wPriceVal" class="hint"></small>
+          </div>
+          <div>
+            <label>Ad Feasibility</label>
+            <input id="wAd" type="range" min="0" max="40" step="1" value="5">
+            <small id="wAdVal" class="hint"></small>
+          </div>
+          <div>
+            <label>Seasonality</label>
+            <input id="wSeas" type="range" min="0" max="40" step="1" value="5">
+            <small id="wSeasVal" class="hint"></small>
+          </div>
+          <div>
+            <label>Social</label>
+            <input id="wSoc" type="range" min="0" max="40" step="1" value="5">
+            <small id="wSocVal" class="hint"></small>
+          </div>
+          <div>
+            <label>&nbsp;</label>
+            <div class="grid2">
+              <button id="btnPresetBalanced" class="btn btn-ghost" title="Balanced weights">Balanced</button>
+              <button id="btnPresetDemand" class="btn btn-ghost" title="Demand-heavy">Demand-heavy</button>
+            </div>
+            <div style="margin-top:8px">
+              <button id="btnPresetRisk" class="btn btn-ghost" title="Risk-averse (competition/seasonality up)">Risk-averse</button>
+            </div>
+          </div>
+        </div>
+        <small class="hint">Weights auto-normalize to total 100.</small>
+      </div>
+
+      <div class="section">
+        <h2>3) Filters</h2>
+        <div class="row">
+          <div>
+            <label>Min OppScore</label>
+            <input id="minOpp" type="number" value="0" min="0" max="100" step="1">
+          </div>
+          <div>
+            <label>Search keyword</label>
+            <input id="kwSearch" type="text" placeholder="filter…">
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label>Max HHI</label>
+            <input id="maxHHI" type="number" value="0.65" min="0" max="1" step="0.01">
+          </div>
+          <div>
+            <label>Min Seasonality</label>
+            <input id="minSeas" type="number" value="0" min="0" max="1" step="0.01">
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>4) Export</h2>
+        <div class="controls">
+          <button id="btnExport" class="btn btn-primary">Export ranked CSV</button>
+          <small class="hint">For PDF, use your browser’s <b>Print → Save as PDF</b>.</small>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <section>
+      <!-- KPIs -->
+      <div class="kpis">
+        <div class="kpi"><h3>Rows Loaded</h3><div id="kpiRows" class="v">0</div></div>
+        <div class="kpi"><h3>Avg OppScore</h3><div id="kpiAvg" class="v">—</div></div>
+        <div class="kpi"><h3>Fragmented Markets</h3><div id="kpiFrag" class="v">—</div><small class="hint">HHI &lt; 0.35</small></div>
+        <div class="kpi"><h3>Last Refresh</h3><div id="kpiTime" class="v">—</div></div>
+      </div>
+
+      <!-- Table -->
+      <div class="card">
+        <div class="card-head">
+          <h3>Opportunity Table</h3>
+          <small id="tableNote" class="hint">Load data to begin. Click headers to sort. Click a row to see charts.</small>
+        </div>
+        <div class="toolbar">
+          <span>Selected:</span> <span id="selectedKW" class="badge">None</span>
+        </div>
+        <div class="table-wrap">
+          <table id="tbl">
+            <thead>
+              <tr>
+                <th data-col="keyword">Keyword Phrase</th>
+                <th data-col="oppScore">OppScore</th>
+                <th data-col="weeklyPurch">Weekly Purchases</th>
+                <th data-col="weeklyClicks">Weekly Clicks</th>
+                <th data-col="clickConv">ClickConv</th>
+                <th data-col="avgPrice">AvgPrice</th>
+                <th data-col="cpc">CPC</th>
+                <th data-col="cr4">CR4</th>
+                <th data-col="hhi">HHI</th>
+                <th data-col="frag">1−HHI</th>
+                <th data-col="seasonality">Seasonality</th>
+                <th data-col="label">Label</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="card" style="margin-top:14px">
+        <div class="card-head"><h3>Visuals</h3></div>
+        <div class="grid2x">
+          <div class="card">
+            <div class="card-head"><h3>Google Trends</h3></div>
+            <div style="padding:12px"><canvas id="trendChart" height="160"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>Competition Snapshot</h3></div>
+            <div style="padding:12px"><canvas id="compChart" height="160"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Trendscout Pro MVP — client-side prototype. All data stays in your browser.
+  </footer>
+</div>
+
+<script>
+/* =========================
+   State & Utilities
+========================= */
+const $ = s => document.querySelector(s);
+const els = {
+  ssFile: $('#ssFile'), gtFiles: $('#gtFiles'),
+  btnSample: $('#btnSample'), btnReplace: $('#btnReplace'),
+  btnExport: $('#btnExport'), btnSave: $('#btnSave'), btnLoad: $('#btnLoad'), btnClearAll: $('#btnClearAll'),
+  btnTheme: $('#btnTheme'),
+  priceTarget: $('#priceTarget'), priceWidth: $('#priceWidth'),
+  wDemand: $('#wDemand'), wComp: $('#wComp'), wCC: $('#wCC'),
+  wPrice: $('#wPrice'), wAd: $('#wAd'), wSeas: $('#wSeas'), wSoc: $('#wSoc'),
+  priceTargetVal: $('#priceTargetVal'), priceWidthVal: $('#priceWidthVal'),
+  wDemandVal: $('#wDemandVal'), wCompVal: $('#wCompVal'), wCCVal: $('#wCCVal'),
+  wPriceVal: $('#wPriceVal'), wAdVal: $('#wAdVal'), wSeasVal: $('#wSeasVal'), wSocVal: $('#wSocVal'),
+  minOpp: $('#minOpp'), kwSearch: $('#kwSearch'), maxHHI: $('#maxHHI'), minSeas: $('#minSeas'),
+  ingestNote: $('#ingestNote'),
+  kpiRows: $('#kpiRows'), kpiAvg: $('#kpiAvg'), kpiFrag: $('#kpiFrag'), kpiTime: $('#kpiTime'),
+  tableBody: $('#tbl').querySelector('tbody'), table: $('#tbl'),
+  tableNote: $('#tableNote'), selectedKW: $('#selectedKW')
+};
+let rows = [];          // current dataset
+let trendsMap = {};     // keywordKey -> {series:[{t,y}], seasonality}
+let sortState = { col: 'oppScore', dir: -1 };
+let trendChart, compChart;
+
+function nowStr(){ const d=new Date(); return d.toLocaleString(); }
+function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+function toNum(v){ const n = parseFloat((''+v).replace(/[, %]/g,'')); return isFinite(n)? n : 0; }
+function pctToDec(v){ const n = toNum(v); return n>1? n/100 : Math.max(0, Math.min(1,n)); }
+
+function setLabels(){
+  els.priceTargetVal.textContent = `= $${els.priceTarget.value}`;
+  els.priceWidthVal.textContent  = `= ±$${els.priceWidth.value}`;
+  els.wDemandVal.textContent = `= ${els.wDemand.value}%`;
+  els.wCompVal.textContent   = `= ${els.wComp.value}%`;
+  els.wCCVal.textContent     = `= ${els.wCC.value}%`;
+  els.wPriceVal.textContent  = `= ${els.wPrice.value}%`;
+  els.wAdVal.textContent     = `= ${els.wAd.value}%`;
+  els.wSeasVal.textContent   = `= ${els.wSeas.value}%`;
+  els.wSocVal.textContent    = `= ${els.wSoc.value}%`;
+}
+['priceTarget','priceWidth','wDemand','wComp','wCC','wPrice','wAd','wSeas','wSoc','minOpp','kwSearch','maxHHI','minSeas']
+  .forEach(id => els[id].addEventListener('input', ()=>{ setLabels(); if(rows.length) renderAll(); }));
+setLabels();
+
+/* =========================
+   Theme + Session
+========================= */
+const THEME_KEY = 'trendscout_theme';
+const SESS_KEY  = 'trendscout_session';
+function applyTheme(t){ document.documentElement.className = (t==='light' ? 'light' : ''); els.btnTheme.textContent = (t==='light'?'Light':'Dark'); }
+applyTheme(localStorage.getItem(THEME_KEY)||'');
+els.btnTheme.addEventListener('click', ()=>{
+  const t = document.documentElement.classList.contains('light') ? '' : 'light';
+  localStorage.setItem(THEME_KEY, t); applyTheme(t);
+});
+
+els.btnSave.addEventListener('click', ()=>{
+  const payload = { rows, settings:getSettings(), trends: trendsMap };
+  localStorage.setItem(SESS_KEY, JSON.stringify(payload));
+  alert('Session saved in your browser.');
+});
+els.btnLoad.addEventListener('click', ()=>{
+  const raw = localStorage.getItem(SESS_KEY);
+  if(!raw){ alert('No saved session found.'); return; }
+  const data = JSON.parse(raw);
+  rows = data.rows||[]; trendsMap = data.trends||{}; setSettings(data.settings||{});
+  renderAll(); alert('Session loaded.');
+});
+els.btnClearAll.addEventListener('click', ()=>{
+  rows=[]; trendsMap={}; renderAll(); els.ingestNote.textContent='Cleared.';
+});
+
+/* =========================
+   Presets
+========================= */
+function setPresetBalanced(){
+  els.wDemand.value=35; els.wComp.value=20; els.wCC.value=15; els.wPrice.value=15; els.wAd.value=5; els.wSeas.value=5; els.wSoc.value=5; setLabels(); renderAll();
+}
+function setPresetDemand(){
+  els.wDemand.value=50; els.wComp.value=15; els.wCC.value=10; els.wPrice.value=10; els.wAd.value=5; els.wSeas.value=5; els.wSoc.value=5; setLabels(); renderAll();
+}
+function setPresetRisk(){
+  els.wDemand.value=25; els.wComp.value=25; els.wCC.value=10; els.wPrice.value=10; els.wAd.value=5; els.wSeas.value=15; els.wSoc.value=10; setLabels(); renderAll();
+}
+$('#btnPresetBalanced').addEventListener('click', setPresetBalanced);
+$('#btnPresetDemand').addEventListener('click', setPresetDemand);
+$('#btnPresetRisk').addEventListener('click', setPresetRisk);
+
+/* =========================
+   Ingest: SellerSprite + Trends
+========================= */
+els.ssFile.addEventListener('change', async (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  const ext = f.name.split('.').pop().toLowerCase();
+  let data=[];
+  if(ext==='csv'){
+    const txt = await f.text();
+    data = Papa.parse(txt, {header:true, skipEmptyLines:true}).data;
+  } else {
+    const buf = await f.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    data = XLSX.utils.sheet_to_json(ws, {defval:''});
+  }
+  rows = ssToRows(data);
+  els.ingestNote.textContent = `SellerSprite rows: ${rows.length}`;
+  renderAll();
+});
+
+els.gtFiles.addEventListener('change', async (e)=>{
+  trendsMap = {};
+  const files = Array.from(e.target.files||[]);
+  for(const f of files){
+    const txt = await f.text();
+    const parsed = Papa.parse(txt, {header:true, skipEmptyLines:true}).data;
+    const cols = parsed[0]? Object.keys(parsed[0]) : [];
+    const dateCol = cols.find(c=>/date|week|month|day/i.test(c)) || cols[0];
+    const valCol  = cols.find(c=> c!==dateCol ) || cols[1];
+    const key = (valCol||'').trim().toLowerCase();
+    const series = parsed.map(r=>{
+      const d=new Date(r[dateCol]); const y=toNum(r[valCol]);
+      return (isFinite(d.getTime())&&isFinite(y))? {t:d,y} : null;
+    }).filter(Boolean).sort((a,b)=>a.t-b.t);
+    trendsMap[key] = { series, ...seasonality(series) };
+  }
+  els.ingestNote.textContent = `${els.ingestNote.textContent} · Trends series: ${Object.keys(trendsMap).length}`;
+  renderAll();
+});
+
+function ssToRows(data){
+  const col = (names)=> {
+    const keys = data[0]? Object.keys(data[0]):[];
+    let k = names.find(n=> keys.some(c=> c.trim().toLowerCase()===n));
+    if(!k){ k = names.find(n=> keys.some(c=> c.trim().toLowerCase().includes(n))); }
+    if(!k) return null;
+    const hit = keys.find(c=> c.trim().toLowerCase()===k) || keys.find(c=> c.trim().toLowerCase().includes(k));
+    return data.map(r=> r[hit]);
+  };
+  const kw = col(['keyword phrase','keyword','query']);
+  if(!kw) return [];
+  const ws= col(['weekly purchases','weekly orders','orders','purchases'])||[];
+  const wc= col(['weekly clicks','clicks'])||[];
+  const sv= col(['weekly search volume','search volume'])||[];
+  const ccr=col(['click conversion rate','click conv','cvr'])||[];
+  const ap= col(['avg. price ($)','avg price','average price'])||[];
+  const cpc=col(['ppc bid - recommended ($)','cpc','recommended bid'])||[];
+  const s1= col(['#1 click share','click share #1','top 1 click share'])||[];
+  const s2= col(['#2 click share','click share #2','top 2 click share'])||[];
+  const s3= col(['#3 click share','click share #3','top 3 click share'])||[];
+
+  return kw.map((k,i)=>{
+    const weeklyPurch = toNum(ws[i]);
+    const weeklyClicks= toNum(wc[i]);
+    const searchVol   = toNum(sv[i]);
+    const clickConv   = pctToDec(ccr[i]);
+    const avgPrice    = toNum(ap[i]);
+    const recCpc      = toNum(cpc[i]);
+    const cs1 = pctToDec(s1[i]), cs2 = pctToDec(s2[i]), cs3 = pctToDec(s3[i]);
+    const sum3 = clamp01((cs1||0)+(cs2||0)+(cs3||0));
+    const cs4 = clamp01(1-sum3);
+    const hhi = clamp01((cs1**2)+(cs2**2)+(cs3**2)+(cs4**2));
+    const frag = clamp01(1-hhi);
+    const cr4 = clamp01(sum3+cs4);
+    const label =
+      hhi < 0.20 ? 'Highly Fragmented' :
+      hhi < 0.35 ? 'Fragmented' :
+      hhi < 0.50 ? 'Mixed' :
+      hhi < 0.65 ? 'Concentrated' : 'Highly Concentrated';
+
+    // Trends mapping (exact or contains)
+    const key = (k||'').toString().trim().toLowerCase();
+    let seas = 0.5, series=null;
+    for(const tk in trendsMap){
+      if(key.includes(tk)||tk.includes(key)){ seas = trendsMap[tk].seasonality01; series=trendsMap[tk].series; break; }
+    }
+
+    return {
+      keyword:k, weeklyPurch, weeklyClicks, searchVol, clickConv, avgPrice, cpc:recCpc,
+      cs1, cs2, cs3, cr4:+cr4.toFixed(3), hhi:+hhi.toFixed(3), frag:+frag.toFixed(3), label,
+      seasonality:+seas.toFixed(3), trendSeries:series
+    };
+  });
+}
+
+/* =========================
+   Sample Data
+========================= */
+function genSampleRows(){
+  const sample = ["glow sticks","glow bracelets","led balloons","neon face paint","foam light stick",
+    "led party glasses","glow necklaces","led fairy lights","party confetti","photo booth props","uv balloons",
+    "led finger lights","neon balloons","glow powder","party streamers"];
+  return sample.map((k, i)=>{
+    const weeklyPurch = Math.round(600 + Math.random()*7000);
+    const weeklyClicks= Math.round(2000 + Math.random()*20000);
+    const clickConv   = clamp01(0.02 + Math.random()*0.08);
+    const avgPrice    = +(6 + Math.random()*38).toFixed(2);
+    const cpc         = +(0.25 + Math.random()*1.8).toFixed(2);
+    let s1 = 0.1 + Math.random()*0.35, s2 = 0.05 + Math.random()*0.25, s3 = 0.03 + Math.random()*0.18;
+    let sum3 = s1+s2+s3; if(sum3>0.95){ const scale=0.95/sum3; s1*=scale; s2*=scale; s3*=scale; sum3=s1+s2+s3; }
+    const s4 = 1-sum3, hhi = (s1*s1)+(s2*s2)+(s3*s3)+(s4*s4), frag=1-hhi, cr4=sum3+s4;
+    const label = hhi<0.20?'Highly Fragmented': hhi<0.35?'Fragmented': hhi<0.50?'Mixed': hhi<0.65?'Concentrated':'Highly Concentrated';
+    // fake trends
+    const series=[]; const now=new Date();
+    for(let d=51; d>=0; d--){ const t=new Date(now.getFullYear(), now.getMonth(), now.getDate()-7*d);
+      const y=Math.max(0, Math.round(50 + 28*Math.sin((i+1)*0.15 + d*0.22) + (Math.random()*12-6))); series.push({t,y}); }
+    const seas = seasonality(series).seasonality01;
+    return { keyword:k, weeklyPurch, weeklyClicks, searchVol:0, clickConv, avgPrice, cpc, cs1:s1,cs2:s2,cs3:s3,
+      cr4:+cr4.toFixed(3), hhi:+hhi.toFixed(3), frag:+frag.toFixed(3), label, seasonality:+seas.toFixed(3), trendSeries:series };
+  });
+}
+els.btnSample.addEventListener('click', ()=>{ rows = rows.concat(genSampleRows()); renderAll(); els.ingestNote.textContent='Sample data appended.'; });
+els.btnReplace.addEventListener('click', ()=>{ rows = genSampleRows(); renderAll(); els.ingestNote.textContent='Sample data replaced.'; });
+
+/* =========================
+   Seasonality from series
+========================= */
+function seasonality(series){
+  if(!series || series.length<10) return {seasonality01:0.5, momentumRaw:1, amplitudeRaw:1};
+  const vals = series.map(p=> p.y);
+  const last4 = avg(vals.slice(-4)), prev4 = avg(vals.slice(-8,-4)), base = avg(vals.slice(0,4));
+  const momentum = prev4>0 ? last4/prev4 : 1, amplitude = base>0 ? Math.max(...vals)/base : 1;
+  const mNorm = clamp01((momentum - 0.8) / (1.5 - 0.8));
+  const aNorm = clamp01((amplitude - 1.0) / (3.0 - 1.0));
+  const s = 0.6*mNorm + 0.4*aNorm;
+  return {seasonality01:+s.toFixed(4), momentumRaw:+momentum.toFixed(4), amplitudeRaw:+amplitude.toFixed(4)};
+}
+const avg = arr => arr.reduce((a,b)=>a+b,0)/Math.max(1,arr.length);
+
+/* =========================
+   Scoring + Render
+========================= */
+function getSettings(){
+  return {
+    priceTarget:+els.priceTarget.value, priceWidth:+els.priceWidth.value,
+    w:{ demand:+els.wDemand.value, comp:+els.wComp.value, cc:+els.wCC.value, price:+els.wPrice.value,
+        ad:+els.wAd.value, seas:+els.wSeas.value, soc:+els.wSoc.value },
+    filters:{ minOpp:+els.minOpp.value, q:(els.kwSearch.value||''), maxHHI:+els.maxHHI.value, minSeas:+els.minSeas.value }
+  };
+}
+function setSettings(s){
+  if(!s) return;
+  els.priceTarget.value=s.priceTarget||20; els.priceWidth.value=s.priceWidth||20;
+  const w=s.w||{}; els.wDemand.value=w.demand??35; els.wComp.value=w.comp??20; els.wCC.value=w.cc??15;
+  els.wPrice.value=w.price??15; els.wAd.value=w.ad??5; els.wSeas.value=w.seas??5; els.wSoc.value=w.soc??5;
+  const f=s.filters||{}; els.minOpp.value=f.minOpp??0; els.kwSearch.value=f.q??''; els.maxHHI.value=f.maxHHI??0.65; els.minSeas.value=f.minSeas??0;
+  setLabels();
+}
+function weightNorm(w){
+  const t = Object.values(w).reduce((a,b)=>a+b,0)||1;
+  const out={}; for(const k in w) out[k]=w[k]/t; return out;
+}
+function priceScore(p, target, width){
+  const d = Math.abs((p||0) - target);
+  return clamp01(1 - Math.min(d/Math.max(1,width), 1));
+}
+
+function computeScores(){
+  const s = getSettings(); const W = weightNorm(s.w);
+  // normalize demand and CPC across rows
+  const purch = rows.map(r=> r.weeklyPurch||r.weeklyClicks||r.searchVol||0);
+  const cpcs  = rows.map(r=> r.cpc||0);
+  const minmax = (arr)=>{ const mn=Math.min(...arr), mx=Math.max(...arr); return v=> (mx===mn)? 0.5 : (v-mn)/(mx-mn); };
+  const d01 = minmax(purch), c01=minmax(cpcs);
+
+  rows.forEach(r=>{
+    const demand01 = d01(r.weeklyPurch||r.weeklyClicks||r.searchVol||0);
+    const adFeas01 = clamp01(1 - c01(r.cpc||0));
+    const price01  = priceScore(r.avgPrice||0, s.priceTarget, s.priceWidth);
+    const seas01   = isFinite(r.seasonality)? r.seasonality : 0.5;
+    const cc01     = clamp01(r.clickConv||0);
+    const frag     = clamp01(r.frag||0);
+    const social01 = 0.5; // placeholder for future input
+
+    const opp = 100*(W.demand*demand01 + W.comp*frag + W.cc*cc01 + W.price*price01 + W.ad*adFeas01 + W.seas*seas01 + W.soc*social01);
+    r.oppScore = +opp.toFixed(1);
+  });
+}
+
+function applyFiltersAndSort(){
+  const f = getSettings().filters;
+  const q = (f.q||'').trim().toLowerCase();
+  let out = rows.filter(r=>{
+    return r.oppScore>=f.minOpp
+        && r.hhi<=f.maxHHI
+        && r.seasonality>=f.minSeas
+        && (!q || (r.keyword||'').toLowerCase().includes(q));
+  });
+  out.sort((a,b)=> (a[sortState.col] > b[sortState.col] ? sortState.dir : -sortState.dir));
+  return out;
+}
+
+function renderKPIs(){
+  els.kpiRows.textContent = rows.length;
+  const avg = rows.length ? (rows.reduce((a,r)=>a+(r.oppScore||0),0)/rows.length) : 0;
+  els.kpiAvg.textContent = rows.length ? avg.toFixed(1) : '—';
+  const fragmented = rows.filter(r=> r.hhi<0.35).length;
+  els.kpiFrag.textContent = rows.length ? Math.round(fragmented/rows.length*100)+'%' : '—';
+  els.kpiTime.textContent = nowStr();
+}
+
+function renderTable(){
+  const body = els.tableBody; body.innerHTML='';
+  const data = applyFiltersAndSort();
+  els.tableNote.textContent = `Rows: ${data.length} (of ${rows.length}). Click a row for charts.`;
+  const fmtPct = (x)=> isFinite(x)? (x*100).toFixed(1)+'%':'—';
+  const fmtMoney = (x)=> isFinite(x)? '$'+(+x).toFixed(2):'—';
+  const fmtNum = (n)=> isFinite(n)? (+n).toLocaleString(): '—';
+
+  body.innerHTML = data.map(r=> `
+    <tr data-kw="${encodeURIComponent(r.keyword)}">
+      <td>${r.keyword}</td>
+      <td><b>${fmtNum(r.oppScore)}</b></td>
+      <td>${fmtNum(r.weeklyPurch)}</td>
+      <td>${fmtNum(r.weeklyClicks)}</td>
+      <td>${fmtPct(r.clickConv)}</td>
+      <td>${fmtMoney(r.avgPrice)}</td>
+      <td>${fmtMoney(r.cpc)}</td>
+      <td>${fmtPct(r.cr4)}</td>
+      <td>${fmtPct(r.hhi)}</td>
+      <td>${fmtPct(r.frag)}</td>
+      <td>${fmtPct(r.seasonality)}</td>
+      <td>${r.label}</td>
+    </tr>
+  `).join('');
+
+  body.querySelectorAll('tr').forEach(tr=>{
+    tr.addEventListener('click', ()=>{
+      const kw = decodeURIComponent(tr.getAttribute('data-kw'));
+      els.selectedKW.textContent = kw || 'None';
+      const r = rows.find(x=> x.keyword===kw);
+      drawCompChart(r);
+      drawTrendChart(r);
+    });
+  });
+}
+
+function drawCompChart(r){
+  const ctx = $('#compChart');
+  if(compChart) compChart.destroy();
+  const hhi=r?.hhi||0, frag=r?.frag||0;
+  compChart = new Chart(ctx, {
+    type:'bar',
+    data:{ labels:['HHI','1−HHI (Fragmentation)'], datasets:[{ data:[hhi, frag], borderWidth:0 }]},
+    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, max:1}} }
+  });
+}
+function drawTrendChart(r){
+  const ctx = $('#trendChart');
+  if(trendChart) trendChart.destroy();
+  const series = r?.trendSeries||[];
+  if(!series.length){ trendChart = new Chart(ctx, {type:'line',data:{labels:[],datasets:[{data:[]}]}}); return; }
+  trendChart = new Chart(ctx, {
+    type:'line',
+    data:{ labels: series.map(p=> p.t.toISOString().slice(0,10)), datasets:[{ data: series.map(p=> p.y), tension:.25 }]},
+    options:{ responsive:true, plugins:{legend:{display:false}} }
+  });
+}
+
+function renderAll(){
+  computeScores(); renderKPIs(); renderTable();
+}
+
+/* =========================
+   Sorting
+========================= */
+$('#tbl').querySelectorAll('th').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const col = th.getAttribute('data-col'); if(!col) return;
+    if(sortState.col===col) sortState.dir*=-1; else { sortState.col=col; sortState.dir=-1; }
+    renderTable();
+  });
+});
+
+/* =========================
+   Export
+========================= */
+els.btnExport.addEventListener('click', ()=>{
+  if(!rows.length) return alert('No rows to export.');
+  const data = applyFiltersAndSort();
+  const header = [
+    'Keyword Phrase','OppScore','Weekly Purchases','Weekly Clicks','Weekly Search Volume','Click Conversion Rate',
+    'Avg Price','CPC','CR4','HHI','Fragmentation','Seasonality','Competition Label'
+  ];
+  const lines = [header.join(',')];
+  data.forEach(r=>{
+    lines.push([
+      `"${(r.keyword||'').replace(/"/g,'""')}"`,
+      r.oppScore, r.weeklyPurch, r.weeklyClicks, r.searchVol||0,
+      r.clickConv||0, r.avgPrice||0, r.cpc||0, r.cr4||0, r.hhi||0, r.frag||0, r.seasonality||0,
+      `"${r.label||''}"`
+    ].join(','));
+  });
+  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'trendscout_ranked.csv'; a.click();
+});
+</script>
+</body>
+</html>
+
+
